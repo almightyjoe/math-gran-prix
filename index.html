@@ -3,19 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Math Gran Prix Web</title>
+  <title>Math Gran Prix</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <p class="eyebrow">Network-Ready Prototype</p>
-        <h1>Math Gran Prix Web</h1>
+        <p class="eyebrow">Browser Racing Math Game</p>
+        <h1>Math Gran Prix</h1>
       </div>
       <div class="topbar-actions">
         <button id="new-race-btn" class="ghost-btn">New Race</button>
-        <button id="reset-scores-btn" class="ghost-btn danger">Reset Records</button>
       </div>
     </header>
 
@@ -23,7 +22,7 @@
       <section class="panel setup-panel">
         <div class="panel-header">
           <h2>Race Setup</h2>
-          <p>Local browser prototype for the future Raspberry Pi service build.</p>
+          <p>Choose drivers, math difficulty, and a race map.</p>
         </div>
 
         <div class="setup-grid">
@@ -56,14 +55,14 @@
         <div id="driver-config" class="driver-config"></div>
 
         <div class="setup-actions">
-          <button id="start-race-btn" class="primary-btn">Start Prototype Race</button>
+          <button id="start-race-btn" class="primary-btn">Start Race</button>
         </div>
       </section>
 
       <section class="panel board-panel">
         <div class="panel-header">
           <h2>Track View</h2>
-          <p>SVG board with clearer hazards, cleaner road mapping, and responsive framing.</p>
+          <p>Pick a distance, solve the question, and race through hazards.</p>
         </div>
         <div id="board-stage" class="board-stage"></div>
       </section>
@@ -92,11 +91,11 @@
           <div id="answer-controls" class="answer-controls"></div>
         </section>
 
-        <section class="panel records-panel">
+        <section class="panel results-panel">
           <div class="panel-header compact">
-            <h2>Records</h2>
+            <h2>Race Results</h2>
           </div>
-          <div id="records-body" class="records-body"></div>
+          <div id="results-body" class="results-body"></div>
         </section>
       </aside>
     </main>

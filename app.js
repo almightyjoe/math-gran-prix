@@ -7,7 +7,6 @@
   const MOVE_OPTIONS = [1, 2, 3];
   const DIFFICULTY_POINTS = [1, 2, 3, 4, 5];
   const PLACEMENT_BONUS = [15, 8, 4, 0];
-  const STORAGE_KEY = "math-gran-prix-web-records";
   const HAZARD_KEYS = ["spinner", "skipper", "sinker", "steps"];
 
   const PLAYER_STYLES = [
@@ -30,10 +29,10 @@
   };
 
   const TRACK_LAYOUTS = {
-    classic: { name: "Classic Crossing", family: "classic" },
-    overpass: { name: "Overpass Weave", family: "overpass" },
-    switchback: { name: "Switchback Circuit", family: "switchback" },
-    random: { name: "Random Template", family: "random" },
+    classic: { name: "Harbor Dash", family: "classic", world: "harbor" },
+    overpass: { name: "Skyline Overpass", family: "overpass", world: "city" },
+    switchback: { name: "Pine Switchback", family: "switchback", world: "forest" },
+    random: { name: "Random Map", family: "random", world: "mixed" },
   };
 
   const TRACK_LIBRARY = {
@@ -151,8 +150,6 @@
     ],
   };
 
-  const storage = createStorageAdapter();
-
   const state = {
     config: {
       players: 2,
@@ -165,11 +162,10 @@
     activeIndex: 0,
     phase: "setup",
     currentQuestion: null,
-    feedback: "Set up the race and start the prototype.",
+    feedback: "Set up the race and start.",
     forceThree: false,
-    highScores: storage.load().highScores,
-    winners: storage.load().winners,
     placements: [],
+    lastRace: [],
     track: buildTrackInstance("classic"),
   };
 
@@ -182,7 +178,6 @@
     driverConfig: document.querySelector("#driver-config"),
     startRaceBtn: document.querySelector("#start-race-btn"),
     newRaceBtn: document.querySelector("#new-race-btn"),
-    resetScoresBtn: document.querySelector("#reset-scores-btn"),
     boardStage: document.querySelector("#board-stage"),
     statusSummary: document.querySelector("#status-summary"),
     driverRoster: document.querySelector("#driver-roster"),
@@ -190,31 +185,9 @@
     promptBody: document.querySelector("#prompt-body"),
     moveControls: document.querySelector("#move-controls"),
     answerControls: document.querySelector("#answer-controls"),
-    recordsBody: document.querySelector("#records-body"),
+    resultsBody: document.querySelector("#results-body"),
     driverTemplate: document.querySelector("#driver-config-template"),
   };
-
-  function createStorageAdapter() {
-    return {
-      load() {
-        try {
-          const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
-          return {
-            highScores: Array.isArray(parsed.highScores) ? parsed.highScores : [],
-            winners: parsed.winners && typeof parsed.winners === "object" ? parsed.winners : {},
-          };
-        } catch {
-          return { highScores: [], winners: {} };
-        }
-      },
-      save(data) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      },
-      clear() {
-        localStorage.removeItem(STORAGE_KEY);
-      },
-    };
-  }
 
   function createTemplate(key, points, safeSpots, laneSegments, hazardCandidates) {
     return {
@@ -233,9 +206,11 @@
       : TRACK_LIBRARY[family];
     const template = templates[randInt(0, templates.length - 1)];
     const hazards = randomizeHazards(template.hazardCandidates);
+    const world = layoutKey === "random" ? worldForTemplate(template.key) : TRACK_LAYOUTS[layoutKey].world;
     return {
       layoutKey,
       templateKey: template.key,
+      world,
       points: template.points.map((point) => [...point]),
       safeSpots: new Set(template.safeSpots),
       laneSegments: template.laneSegments.map((segment) => ({ ...segment })),
@@ -252,6 +227,12 @@
       sinker: picks[2],
       steps: picks[3],
     };
+  }
+
+  function worldForTemplate(templateKey) {
+    if (templateKey.startsWith("overpass")) return "city";
+    if (templateKey.startsWith("switchback")) return "forest";
+    return "harbor";
   }
 
   function shuffle(items) {
@@ -327,12 +308,6 @@
 
     els.startRaceBtn.addEventListener("click", startRace);
     els.newRaceBtn.addEventListener("click", resetToSetup);
-    els.resetScoresBtn.addEventListener("click", () => {
-      state.highScores = [];
-      state.winners = {};
-      storage.clear();
-      renderRecords();
-    });
   }
 
   function applyTheme() {
@@ -438,7 +413,7 @@
   function resetToSetup() {
     state.phase = "setup";
     state.currentQuestion = null;
-    state.feedback = "Set up the next prototype race.";
+    state.feedback = "Set up the next race.";
     state.players = [];
     state.placements = [];
     state.track = buildTrackInstance(state.config.track);
@@ -627,18 +602,14 @@
     });
 
     state.feedback = `${winner.name} wins the race on ${TRACK_LAYOUTS[state.config.track].name}.`;
-    state.highScores.push(...state.placements.map((player, index) => ({
+    state.lastRace = state.placements.map((player, index) => ({
       initials: player.initials,
       score: player.score,
       place: index + 1,
       name: player.name,
       mode: state.config.mode,
       track: state.track.templateKey,
-    })));
-    state.highScores.sort((a, b) => b.score - a.score);
-    state.highScores = state.highScores.slice(0, 20);
-    state.winners[winner.initials] = (state.winners[winner.initials] || 0) + 1;
-    storage.save({ highScores: state.highScores, winners: state.winners });
+    }));
   }
 
   function nextTurn() {
@@ -659,6 +630,7 @@
     const points = state.track.points;
     const path = points.map((point) => point.join(",")).join(" ");
     const laneMarkup = state.track.laneSegments.map((segment) => laneSegmentSvg(points, segment)).join("");
+    const sceneryMarkup = scenerySvg(state.track.world);
     const hazardMarkup = Object.entries(state.track.hazards)
       .map(([key, index]) => hazardSvg(points[index], key))
       .join("");
@@ -666,7 +638,7 @@
       const point = points[player.position] || points[0];
       const offsets = [[-20, -20], [20, -20], [-20, 20], [20, 20]];
       const [ox, oy] = offsets[index] || [0, 0];
-      return carSvg(point[0] + ox, point[1] + oy, player.color);
+      return carSvg(point[0] + ox, point[1] + oy, player.color, carAngle(points, player.position));
     }).join("");
 
     els.boardStage.innerHTML = `
@@ -675,11 +647,22 @@
           <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
             <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="rgba(0,0,0,0.18)"></feDropShadow>
           </filter>
+          <linearGradient id="roadStripe" x1="0" x2="1">
+            <stop offset="0" stop-color="rgba(255,255,255,0.8)"></stop>
+            <stop offset="1" stop-color="rgba(255,255,255,0.25)"></stop>
+          </linearGradient>
         </defs>
+        ${sceneryMarkup}
         <g filter="url(#softShadow)">
+          <polyline points="${path}" fill="none" stroke="rgba(35,38,38,0.2)" stroke-width="104" stroke-linecap="round" stroke-linejoin="round"></polyline>
           <polyline points="${path}" fill="none" stroke="var(--road)" stroke-width="82" stroke-linecap="round" stroke-linejoin="round"></polyline>
           <polyline points="${path}" fill="none" stroke="var(--road-edge)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></polyline>
           ${laneMarkup}
+        </g>
+        <g>
+          <rect x="806" y="34" width="198" height="58" rx="16" fill="rgba(255,251,241,0.9)" stroke="var(--panel-border)" stroke-width="2"></rect>
+          <text x="905" y="58" text-anchor="middle" fill="var(--text)" font-size="18" font-weight="800">${escapeHtml(TRACK_LAYOUTS[state.config.track].name)}</text>
+          <text x="905" y="78" text-anchor="middle" fill="var(--muted)" font-size="12">${escapeHtml(state.track.templateKey)}</text>
         </g>
         <g>
           <rect x="36" y="34" width="132" height="84" rx="18" fill="rgba(255,251,241,0.92)" stroke="var(--panel-border)" stroke-width="2"></rect>
@@ -693,6 +676,61 @@
         ${playerMarkup}
       </svg>
     `;
+  }
+
+  function scenerySvg(world) {
+    if (world === "city") {
+      return `
+        <rect x="0" y="0" width="1040" height="560" fill="#c9d8df"></rect>
+        <g opacity="0.78">
+          ${[48, 112, 178, 792, 852, 916, 980].map((x, index) => {
+            const height = [120, 86, 150, 106, 142, 92, 130][index];
+            return `<rect x="${x}" y="${120 - height * 0.3}" width="46" height="${height}" rx="4" fill="${index % 2 ? "#7f9096" : "#637982"}"></rect>`;
+          }).join("")}
+          ${[70, 134, 200, 814, 874, 938].map((x) => `<path d="M${x},176 h26 M${x},198 h26 M${x},220 h26" stroke="rgba(255,255,255,0.45)" stroke-width="4"></path>`).join("")}
+        </g>
+        <path d="M0,512 C180,480 274,532 424,500 C604,462 724,514 1040,482 L1040,560 L0,560 Z" fill="rgba(79,113,123,0.28)"></path>
+        <circle cx="642" cy="86" r="34" fill="rgba(255,244,180,0.68)"></circle>
+      `;
+    }
+    if (world === "forest") {
+      return `
+        <rect x="0" y="0" width="1040" height="560" fill="#c8d6bd"></rect>
+        <path d="M0,130 C170,72 302,142 454,92 C614,40 742,96 1040,52 L1040,0 L0,0 Z" fill="rgba(87,119,80,0.42)"></path>
+        <path d="M0,520 C164,482 278,536 440,500 C612,462 778,520 1040,474 L1040,560 L0,560 Z" fill="rgba(76,112,74,0.24)"></path>
+        ${treeRows([[54, 412], [134, 102], [214, 86], [812, 112], [904, 430], [966, 384], [726, 74], [486, 92]])}
+      `;
+    }
+    return `
+      <rect x="0" y="0" width="1040" height="560" fill="#d8d1c0"></rect>
+      <path d="M0,420 C130,386 230,420 354,390 C500,354 620,398 760,366 C884,338 946,352 1040,326 L1040,560 L0,560 Z" fill="rgba(90,149,166,0.42)"></path>
+      <path d="M0,442 C176,412 282,456 430,424 C574,394 730,438 1040,400" fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="8"></path>
+      <g opacity="0.82">
+        <rect x="690" y="98" width="116" height="54" rx="8" fill="#b46452"></rect>
+        <rect x="712" y="68" width="68" height="34" rx="6" fill="#d39b51"></rect>
+        <rect x="720" y="116" width="28" height="36" fill="#604837"></rect>
+        <path d="M836,142 l34,-58 l34,58 Z" fill="#d39b51"></path>
+        <rect x="864" y="142" width="14" height="56" fill="#6d5140"></rect>
+      </g>
+    `;
+  }
+
+  function treeRows(trees) {
+    return trees.map(([x, y]) => `
+      <g transform="translate(${x} ${y})">
+        <rect x="-5" y="14" width="10" height="26" rx="3" fill="#6d4f34"></rect>
+        <path d="M0,-34 L28,18 L-28,18 Z" fill="#496f45"></path>
+        <path d="M0,-14 L24,30 L-24,30 Z" fill="#5b8455"></path>
+      </g>
+    `).join("");
+  }
+
+  function carAngle(points, index) {
+    const current = points[index] || points[0];
+    const next = points[Math.min(points.length - 1, index + 1)] || current;
+    const previous = points[Math.max(0, index - 1)] || current;
+    const target = index >= points.length - 1 ? previous : next;
+    return Math.atan2(target[1] - current[1], target[0] - current[0]) * 180 / Math.PI;
   }
 
   function laneSegmentSvg(points, segment) {
@@ -717,8 +755,9 @@
     const fill = fills[hazard] || (state.track.safeSpots.has(index) ? "#d9e6c5" : "#fbfbfb");
     return `
       <g>
-        <circle cx="${point[0]}" cy="${point[1]}" r="26" fill="${fill}" stroke="rgba(0,0,0,0.18)" stroke-width="1"></circle>
-        <text x="${point[0]}" y="${point[1] + 6}" text-anchor="middle" fill="#2d2d2d" font-size="18">${index}</text>
+        <circle cx="${point[0]}" cy="${point[1]}" r="28" fill="rgba(0,0,0,0.12)"></circle>
+        <circle cx="${point[0]}" cy="${point[1]}" r="24" fill="${fill}" stroke="rgba(255,255,255,0.84)" stroke-width="4"></circle>
+        <text x="${point[0]}" y="${point[1] + 6}" text-anchor="middle" fill="#2d2d2d" font-size="17" font-weight="800">${index}</text>
       </g>
     `;
   }
@@ -746,17 +785,18 @@
     `;
   }
 
-  function carSvg(x, y, color) {
+  function carSvg(x, y, color, angle) {
     return `
-      <g transform="translate(${x} ${y})">
-        <rect x="-17" y="-10" width="34" height="20" rx="6" fill="#1f1f1f"></rect>
-        <rect x="-14" y="-8" width="28" height="16" rx="5" fill="${color}"></rect>
-        <rect x="-7" y="-15" width="14" height="10" rx="4" fill="#1f1f1f"></rect>
-        <rect x="-5" y="-13" width="10" height="6" rx="3" fill="#edf6ff"></rect>
-        <circle cx="-10" cy="12" r="5" fill="#1f1f1f"></circle>
-        <circle cx="10" cy="12" r="5" fill="#1f1f1f"></circle>
-        <circle cx="-10" cy="12" r="2" fill="#ffffff"></circle>
-        <circle cx="10" cy="12" r="2" fill="#ffffff"></circle>
+      <g transform="translate(${x} ${y}) rotate(${angle})">
+        <ellipse cx="0" cy="18" rx="22" ry="6" fill="rgba(0,0,0,0.24)"></ellipse>
+        <path d="M-22,-10 C-10,-20 12,-20 24,-8 L28,8 C14,18 -12,18 -28,8 Z" fill="#22272c"></path>
+        <path d="M-18,-8 C-8,-15 10,-15 20,-6 L22,7 C10,14 -10,14 -22,7 Z" fill="${color}"></path>
+        <path d="M-5,-14 L9,-12 L14,-4 L-10,-4 Z" fill="#dff4ff" opacity="0.9"></path>
+        <circle cx="-16" cy="11" r="6" fill="#151719"></circle>
+        <circle cx="16" cy="11" r="6" fill="#151719"></circle>
+        <circle cx="-16" cy="11" r="2" fill="#ffffff"></circle>
+        <circle cx="16" cy="11" r="2" fill="#ffffff"></circle>
+        <path d="M24,-5 L34,0 L24,5 Z" fill="#ffe681"></path>
       </g>
     `;
   }
@@ -799,8 +839,8 @@
     if (state.phase === "setup") {
       els.promptTitle.textContent = "Ready";
       els.promptBody.innerHTML = `
-        <div class="info-card">Configure the race, then start the browser prototype.</div>
-        <div class="info-card">The “Random Template” option now chooses among multiple authored track designs and re-randomizes the hazard markers each race.</div>
+        <div class="info-card">Configure the race, then start.</div>
+        <div class="info-card">Random Map chooses among the authored tracks and re-randomizes hazard markers each race.</div>
       `;
       return;
     }
@@ -867,27 +907,17 @@
     }
   }
 
-  function renderRecords() {
-    const topScores = state.highScores.length
-      ? `<ol>${state.highScores.slice(0, 8).map((record) => `<li>${record.initials} - ${record.score} pts (${record.track})</li>`).join("")}</ol>`
-      : `<p class="muted">No scores saved yet.</p>`;
-    const winners = Object.entries(state.winners).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    const winsMarkup = winners.length
-      ? `<ul>${winners.map(([initials, wins]) => `<li>${initials} - ${wins} win${wins === 1 ? "" : "s"}</li>`).join("")}</ul>`
-      : `<p class="muted">No winners recorded yet.</p>`;
+  function renderResults() {
+    const standings = state.lastRace.length
+      ? `<ol>${state.lastRace.map((record) => `<li>${record.initials} ${escapeHtml(record.name)} - ${record.score} pts (${escapeHtml(record.track)})</li>`).join("")}</ol>`
+      : `<p class="muted">No completed race yet.</p>`;
 
-    els.recordsBody.innerHTML = `
+    els.resultsBody.innerHTML = `
       <div class="score-list">
-        <h3>High Scores</h3>
-        ${topScores}
+        <h3>Latest Finish</h3>
+        ${standings}
       </div>
-      <div class="score-list">
-        <h3>Winner Tracking</h3>
-        ${winsMarkup}
-      </div>
-      <div class="info-card muted">
-        Records are persistent through the storage adapter now. For Pi hosting, replace the adapter with HTTP or WebSocket-backed server persistence instead of localStorage.
-      </div>
+      <div class="info-card muted">This website version keeps results only for the current browser session.</div>
     `;
   }
 
@@ -897,7 +927,7 @@
     renderStatus();
     renderRoster();
     renderPrompt();
-    renderRecords();
+    renderResults();
   }
 
   function escapeHtml(value) {

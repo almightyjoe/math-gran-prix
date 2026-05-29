@@ -1,49 +1,29 @@
-# Math Gran Prix Web
+# Math Gran Prix
 
-Browser-first fork of the local `pygame` version, intended as the design and logic base for a future Raspberry Pi hosted network edition.
+Standalone static website version of Math Gran Prix.
 
-## What This Branch Is
+## Website Shape
 
-- Plain `HTML` / `CSS` / `JavaScript`
+- Plain `HTML`, `CSS`, and `JavaScript`
 - No framework
 - No build step
-- No local background service required
-- Usable directly in a browser as a design prototype
+- No backend service
+- GitHub Pages compatible
+- Results are kept only for the current browser session
 
-## What It Already Includes
+## Included
 
-- Responsive three-column game layout with separate setup, track, control, driver, prompt, and records panels
-- Authored SVG track templates instead of a fake circular randomizer
-- Mixed single-lane and dual-lane road sections to better match the spirit of the original board design
-- Randomized hazard placement per race across authored candidate spaces:
-  - `Spinner`
-  - `Skipper`
-  - `Sinker`
-  - `Steps`
-- Two to four total drivers
-- Human and AI driver mix
-- Driver initials
-- Local scoring, placement bonuses, high-score tracking, and winner tracking
-- Persistent records through a browser storage adapter using `localStorage`
+- Local browser gameplay for two to four drivers
+- Human and AI drivers
+- Addition, subtraction, multiplication, division, and mixed modes
+- Authored SVG race maps with distinct scenery
+- Randomized hazard placement per race
+- Session-only final standings
 
-## Test Locally
+## Run Locally
 
-Open [index.html](C:\Users\jneal3\OneDrive - Schlumberger\Documents\pythons\CODEX\math-gran-prix-web\index.html) in a browser.
+Open `index.html` in a browser, or serve the folder with any static file server.
 
-Because this version is static and dependency-free, it does not need `python`, `node`, or a local web server just to evaluate the design and gameplay flow.
+## GitHub Pages
 
-## Later Raspberry Pi Hosting Plan
-
-The intended next step is to keep this frontend mostly static and add a lightweight service behind it on the Pi. Recommended shape:
-
-1. Serve this frontend as static files.
-2. Add a tiny HTTP + WebSocket service for lobby, race state, and shared scoreboard.
-3. Replace `localStorage` records with server-backed records.
-4. Move AI and scoring validation server-side so remote clients cannot spoof results.
-
-## Suggested Next Engineering Steps
-
-1. Add deterministic shared race state serialization for remote play.
-2. Replace the browser storage adapter with a shared server scoreboard API on the Raspberry Pi.
-3. Add lane-aware car orientation and more polished authored art for hazards and track furniture.
-4. Add a lobby screen and player-ready flow for actual network sessions.
+This project can be published directly from the repository root on the `main` branch. It does not need server storage unless shared all-time high scores, online multiplayer, or account features are added later.
