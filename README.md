@@ -19,7 +19,7 @@ Standalone static website version of Math Gran Prix.
 - Configuration changes reset player readiness before the race can start
 - Addition, subtraction, multiplication, division, and mixed modes
 - Eight selectable SVG race maps with distinct scenery
-- Randomized hazard placement on the selected map
+- Randomized hazard placement and hazard types on the selected map, including repeated hazard types
 - Race view that prioritizes the map, move buttons, and active challenge
 - Session-only final standings
 

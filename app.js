@@ -406,14 +406,14 @@
   }
 
   function randomizeHazards(candidates) {
-    const pool = shuffle([...candidates]);
-    const picks = pool.slice(0, HAZARD_KEYS.length).sort((a, b) => a - b);
-    return {
-      spinner: picks[0],
-      skipper: picks[1],
-      sinker: picks[2],
-      steps: picks[3],
-    };
+    const pool = shuffle([...new Set(candidates)].filter((index) => index > 0 && index < FINISH_INDEX));
+    const minCount = Math.min(4, pool.length);
+    const maxCount = Math.min(9, pool.length);
+    const count = randInt(minCount, maxCount);
+    return pool.slice(0, count).map((space) => ({
+      space,
+      type: HAZARD_KEYS[randInt(0, HAZARD_KEYS.length - 1)],
+    })).sort((a, b) => a.space - b.space);
   }
 
   function shuffle(items) {
@@ -433,7 +433,9 @@
   }
 
   function hazardAt(index) {
-    return Object.entries(state.track.hazards).find(([, value]) => value === index)?.[0] || null;
+    return Array.isArray(state.track.hazards)
+      ? state.track.hazards.find((hazard) => hazard.space === index)?.type || null
+      : Object.entries(state.track.hazards).find(([, value]) => value === index)?.[0] || null;
   }
 
   function getClientId() {
@@ -678,7 +680,7 @@
       updatedAt: Date.now(),
       config: { ...state.config },
       trackKey: state.track.templateKey,
-      hazards: { ...state.track.hazards },
+      hazards: cloneHazards(state.track.hazards),
     };
     writeLobbyRegistry(registry);
   }
@@ -702,9 +704,16 @@
       els.themeSelect.value = state.config.theme;
       state.track = buildTrackInstance(state.config.track);
       if (lobby.hazards) {
-        state.track.hazards = { ...state.track.hazards, ...lobby.hazards };
+        state.track.hazards = cloneHazards(lobby.hazards);
       }
     }
+  }
+
+  function cloneHazards(hazards) {
+    if (Array.isArray(hazards)) {
+      return hazards.map((hazard) => ({ ...hazard }));
+    }
+    return Object.entries(hazards || {}).map(([type, space]) => ({ type, space }));
   }
 
   function applyTheme() {
@@ -1039,8 +1048,8 @@
     const path = points.map((point) => point.join(",")).join(" ");
     const laneMarkup = state.track.laneSegments.map((segment) => laneSegmentSvg(points, segment)).join("");
     const sceneryMarkup = scenerySvg(state.track.world);
-    const hazardMarkup = Object.entries(state.track.hazards)
-      .map(([key, index]) => hazardSvg(points[index], key))
+    const hazardMarkup = cloneHazards(state.track.hazards)
+      .map(({ type, space }) => hazardSvg(points[space], type, space))
       .join("");
     const playerMarkup = state.players.map((player, index) => {
       const point = points[player.position] || points[0];
@@ -1187,8 +1196,9 @@
     `;
   }
 
-  function hazardSvg(point, key) {
+  function hazardSvg(point, key, space) {
     const spec = HAZARD_INFO[key];
+    if (!point || !spec) return "";
 
     const iconMarkup = spec.icon === "star"
       ? `<path d="M0,-16 L5,-5 L17,-5 L7,2 L10,15 L0,8 L-10,15 L-7,2 L-17,-5 L-5,-5 Z" fill="${spec.color}" stroke="#3a3a33" stroke-width="2"></path>`
@@ -1202,6 +1212,7 @@
         <rect x="-44" y="-46" width="88" height="22" rx="7" fill="rgba(255,255,255,0.92)" stroke="${spec.color}" stroke-width="2"></rect>
         <text x="-33" y="-30" fill="#263139" font-size="13" font-weight="900">${spec.short}</text>
         <text x="-16" y="-30" fill="#263139" font-size="12" font-weight="800">${spec.label.toUpperCase()}</text>
+        <text x="34" y="-30" text-anchor="end" fill="#263139" font-size="12" font-weight="900">${space}</text>
         ${iconMarkup}
       </g>
     `;
@@ -1234,7 +1245,7 @@
       `Mode: ${MODE_NAMES[state.config.mode]}`,
       `Track Family: ${TRACK_LAYOUTS[state.config.track].name}`,
       `Template: ${state.track.templateKey}`,
-      `Hazards: S ${state.track.hazards.spinner}, K ${state.track.hazards.skipper}, N ${state.track.hazards.sinker}, T ${state.track.hazards.steps}`,
+      `Hazards: ${hazardSummary()}`,
       state.forceThree ? "Steps is active. Only 3-space moves remain." : "Choose 1, 2, or 3 spaces before solving.",
       state.feedback,
     ];
@@ -1432,19 +1443,36 @@
   }
 
   function renderHazardLegend() {
-    els.hazardLegend.innerHTML = HAZARD_KEYS.map((key) => {
+    const grouped = HAZARD_KEYS.map((key) => ({
+      key,
+      spaces: cloneHazards(state.track.hazards)
+        .filter((hazard) => hazard.type === key)
+        .map((hazard) => hazard.space)
+        .sort((a, b) => a - b),
+    }));
+
+    els.hazardLegend.innerHTML = grouped.map(({ key, spaces }) => {
       const hazard = HAZARD_INFO[key];
-      const space = state.track.hazards[key];
       return `
         <div class="hazard-row">
           <span class="hazard-token" style="background:${hazard.color}">${hazard.short}</span>
           <div>
-            <strong>${hazard.label}${Number.isInteger(space) ? ` ${space}` : ""}</strong>
+            <strong>${hazard.label}${spaces.length ? ` ${spaces.join(", ")}` : ""}</strong>
             <div class="muted">${hazard.effect}</div>
           </div>
         </div>
       `;
     }).join("");
+  }
+
+  function hazardSummary() {
+    return HAZARD_KEYS.map((key) => {
+      const spaces = cloneHazards(state.track.hazards)
+        .filter((hazard) => hazard.type === key)
+        .map((hazard) => hazard.space)
+        .sort((a, b) => a - b);
+      return `${HAZARD_INFO[key].short} ${spaces.length ? spaces.join("/") : "-"}`;
+    }).join(", ");
   }
 
   function render() {
