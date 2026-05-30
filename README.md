@@ -28,3 +28,5 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 ## GitHub Pages
 
 This project can be published directly from the repository root on the `main` branch. It does not need server storage unless shared all-time high scores, online multiplayer, or account features are added later.
+
+The included GitHub Actions workflow deploys the static site to GitHub Pages after pushes to `main`.
