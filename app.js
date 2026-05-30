@@ -8,6 +8,7 @@
   const DIFFICULTY_POINTS = [1, 2, 3, 4, 5];
   const PLACEMENT_BONUS = [15, 8, 4, 0];
   const HAZARD_KEYS = ["spinner", "skipper", "sinker", "steps"];
+  const LOCAL_PLAYER_ID = "local-player";
 
   const PLAYER_STYLES = [
     { name: "Red Car", color: "#cd4f49" },
@@ -231,9 +232,15 @@
       theme: "sand",
       track: "classic",
     },
+    lobby: {
+      active: false,
+      code: "",
+      configVersion: 0,
+      players: [],
+    },
     players: [],
     activeIndex: 0,
-    phase: "setup",
+    phase: "lobby",
     currentQuestion: null,
     feedback: "Set up the race and start.",
     forceThree: false,
@@ -243,6 +250,14 @@
   };
 
   const els = {
+    playerName: document.querySelector("#player-name"),
+    joinCode: document.querySelector("#join-code"),
+    createRaceBtn: document.querySelector("#create-race-btn"),
+    joinRaceBtn: document.querySelector("#join-race-btn"),
+    readyRaceBtn: document.querySelector("#ready-race-btn"),
+    lobbyCode: document.querySelector("#lobby-code"),
+    lobbyStatus: document.querySelector("#lobby-status"),
+    lobbyPlayers: document.querySelector("#lobby-players"),
     playerCount: document.querySelector("#player-count"),
     humanCount: document.querySelector("#human-count"),
     modeSelect: document.querySelector("#mode-select"),
@@ -352,6 +367,7 @@
 
   function randomizeCurrentTrack() {
     state.track.hazards = randomizeHazards([...state.track.hazardCandidates]);
+    invalidateLobbyReady();
     state.feedback = `Hazards randomized on ${TRACK_LAYOUTS[state.config.track].name}.`;
     render();
   }
@@ -411,36 +427,144 @@
       state.config.players = Number(els.playerCount.value);
       state.config.humans = clamp(state.config.humans, 1, state.config.players);
       els.humanCount.value = String(state.config.humans);
+      invalidateLobbyReady();
       rebuildDriverConfig();
       render();
     });
 
     els.humanCount.addEventListener("change", () => {
       state.config.humans = clamp(Number(els.humanCount.value), 1, state.config.players);
+      invalidateLobbyReady();
       rebuildDriverConfig();
       render();
     });
 
     els.modeSelect.addEventListener("change", () => {
       state.config.mode = Number(els.modeSelect.value);
+      invalidateLobbyReady();
       render();
     });
 
     els.trackSelect.addEventListener("change", () => {
       state.config.track = els.trackSelect.value;
       state.track = buildTrackInstance(state.config.track);
+      invalidateLobbyReady();
       render();
     });
 
     els.themeSelect.addEventListener("change", () => {
       state.config.theme = els.themeSelect.value;
+      invalidateLobbyReady();
       applyTheme();
       render();
     });
 
+    els.createRaceBtn.addEventListener("click", createLobby);
+    els.joinRaceBtn.addEventListener("click", joinLobby);
+    els.readyRaceBtn.addEventListener("click", toggleReady);
     els.startRaceBtn.addEventListener("click", startRace);
     els.newRaceBtn.addEventListener("click", resetToSetup);
     els.randomizeTrackBtn.addEventListener("click", randomizeCurrentTrack);
+  }
+
+  function createLobby() {
+    const name = normalizedPlayerName();
+    state.lobby = {
+      active: true,
+      code: randomLobbyCode(),
+      configVersion: 1,
+      players: [
+        {
+          id: LOCAL_PLAYER_ID,
+          name,
+          readyVersion: 0,
+          host: true,
+        },
+      ],
+    };
+    state.phase = "setup";
+    syncConfigToLobby();
+    state.feedback = `${name} created race ${state.lobby.code}.`;
+    rebuildDriverConfig();
+    render();
+  }
+
+  function joinLobby() {
+    const code = (els.joinCode.value || state.lobby.code || randomLobbyCode()).trim().toUpperCase();
+    const localName = normalizedPlayerName();
+    if (!state.lobby.active) {
+      state.lobby = {
+        active: true,
+        code,
+        configVersion: 1,
+        players: [],
+      };
+    }
+    upsertLobbyPlayer(LOCAL_PLAYER_ID, localName, state.lobby.players.length === 0);
+    if (state.lobby.players.length < 4) {
+      upsertLobbyPlayer(`guest-${state.lobby.players.length + 1}`, `Player ${state.lobby.players.length + 1}`, false);
+    }
+    state.lobby.code = code;
+    state.phase = "setup";
+    syncConfigToLobby();
+    state.feedback = `${localName} joined race ${state.lobby.code}.`;
+    rebuildDriverConfig();
+    render();
+  }
+
+  function upsertLobbyPlayer(id, name, host) {
+    const existing = state.lobby.players.find((player) => player.id === id);
+    if (existing) {
+      existing.name = name;
+      existing.host = existing.host || host;
+      return;
+    }
+    state.lobby.players.push({
+      id,
+      name,
+      host,
+      readyVersion: 0,
+    });
+  }
+
+  function toggleReady() {
+    if (!state.lobby.active) {
+      createLobby();
+    }
+    const localPlayer = state.lobby.players.find((player) => player.id === LOCAL_PLAYER_ID);
+    if (!localPlayer) return;
+    localPlayer.readyVersion = localPlayer.readyVersion === state.lobby.configVersion ? 0 : state.lobby.configVersion;
+    render();
+  }
+
+  function normalizedPlayerName() {
+    return (els.playerName.value || "Player 1").trim().slice(0, 18) || "Player 1";
+  }
+
+  function randomLobbyCode() {
+    return Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[randInt(0, 31)]).join("");
+  }
+
+  function syncConfigToLobby() {
+    const humans = Math.max(1, state.lobby.players.length);
+    state.config.players = clamp(Math.max(2, humans), 2, 4);
+    state.config.humans = clamp(humans, 1, state.config.players);
+    els.playerCount.value = String(state.config.players);
+    els.humanCount.value = String(state.config.humans);
+  }
+
+  function invalidateLobbyReady() {
+    if (!state.lobby.active) return;
+    state.lobby.configVersion += 1;
+    state.lobby.players.forEach((player) => {
+      player.readyVersion = 0;
+    });
+  }
+
+  function lobbyIsReady() {
+    return state.lobby.active
+      && state.lobby.players.length > 0
+      && state.lobby.players.every((player) => player.readyVersion === state.lobby.configVersion);
   }
 
   function applyTheme() {
@@ -485,6 +609,7 @@
     els.driverConfig.innerHTML = "";
     for (let index = 0; index < state.config.players; index += 1) {
       const player = PLAYER_STYLES[index];
+      const lobbyPlayer = state.lobby.players[index];
       const fragment = els.driverTemplate.content.cloneNode(true);
       const card = fragment.querySelector(".driver-card");
       const swatch = fragment.querySelector(".swatch");
@@ -493,8 +618,8 @@
       const controller = fragment.querySelector(".driver-controller");
 
       swatch.style.background = player.color;
-      name.textContent = player.name;
-      initials.value = player.name.split(" ").map((part) => part[0]).join("").slice(0, 3).toUpperCase();
+      name.textContent = lobbyPlayer ? lobbyPlayer.name : player.name;
+      initials.value = (lobbyPlayer ? lobbyPlayer.name : player.name).split(" ").map((part) => part[0]).join("").slice(0, 3).toUpperCase();
       controller.value = index < state.config.humans ? "human" : "ai";
       controller.addEventListener("change", syncHumanCountFromControllers);
       card.dataset.index = String(index);
@@ -507,16 +632,24 @@
     const humans = cards.filter((card) => card.querySelector(".driver-controller").value === "human").length;
     state.config.humans = clamp(humans, 1, state.config.players);
     els.humanCount.value = String(state.config.humans);
+    invalidateLobbyReady();
   }
 
   function startRace() {
+    if (state.lobby.active && !lobbyIsReady()) {
+      state.feedback = "All lobby players must be ready before the race starts.";
+      render();
+      return;
+    }
     const cards = [...els.driverConfig.querySelectorAll(".driver-card")];
     state.players = cards.map((card, index) => {
       const style = PLAYER_STYLES[index];
+      const lobbyPlayer = state.lobby.players[index];
       const isAi = card.querySelector(".driver-controller").value === "ai";
       const initialsValue = card.querySelector(".driver-initials").value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3);
       return {
         ...style,
+        name: lobbyPlayer && !isAi ? lobbyPlayer.name : style.name,
         initials: isAi ? "CPU" : (initialsValue || style.name.slice(0, 3).toUpperCase()),
         isAi,
         timed: card.querySelector(".driver-timed").checked,
@@ -545,7 +678,7 @@
   }
 
   function resetToSetup() {
-    state.phase = "setup";
+    state.phase = state.lobby.active ? "setup" : "lobby";
     state.currentQuestion = null;
     state.feedback = "Set up the next race.";
     state.players = [];
@@ -955,8 +1088,12 @@
 
   function renderStatus() {
     const player = currentPlayer();
+    const readyText = state.lobby.active
+      ? `${state.lobby.players.filter((entry) => entry.readyVersion === state.lobby.configVersion).length}/${state.lobby.players.length} ready`
+      : "No lobby";
     const rows = [
       `Turn: ${player ? player.name : "No race running"}`,
+      `Lobby: ${state.lobby.code || "None"} | ${readyText}`,
       `Mode: ${MODE_NAMES[state.config.mode]}`,
       `Track Family: ${TRACK_LAYOUTS[state.config.track].name}`,
       `Template: ${state.track.templateKey}`,
@@ -965,7 +1102,7 @@
       state.feedback,
     ];
 
-    const newRaceAction = state.phase === "setup"
+    const newRaceAction = state.phase === "setup" || state.phase === "lobby"
       ? ""
       : `<button class="ghost-btn status-new-race" type="button">New Race</button>`;
 
@@ -980,7 +1117,21 @@
   }
 
   function renderRoster() {
-    els.driverRoster.innerHTML = state.players.map((player, index) => `
+    const roster = state.players.length
+      ? state.players
+      : state.lobby.players.map((player, index) => ({
+        ...PLAYER_STYLES[index],
+        name: player.name,
+        initials: player.name.split(" ").map((part) => part[0]).join("").slice(0, 3).toUpperCase(),
+        isAi: false,
+        position: 0,
+        score: 0,
+        correctAnswers: 0,
+        brokenDown: false,
+        shielded: false,
+        timed: false,
+      }));
+    els.driverRoster.innerHTML = roster.map((player, index) => `
       <div class="driver-row${index === state.activeIndex && state.phase !== "setup" ? " active" : ""}">
         <div class="driver-row-title">
           <span style="color:${player.color}">${player.name} [${player.initials}]</span>
@@ -997,10 +1148,19 @@
     els.answerControls.innerHTML = "";
     els.promptBody.innerHTML = "";
 
+    if (state.phase === "lobby") {
+      els.promptTitle.textContent = "Lobby";
+      els.promptBody.innerHTML = `
+        <div class="info-card">Create a race or join with a race code.</div>
+      `;
+      return;
+    }
+
     if (state.phase === "setup") {
       els.promptTitle.textContent = "Ready";
+      const ready = lobbyIsReady();
       els.promptBody.innerHTML = `
-        <div class="info-card">Configure the race, then start.</div>
+        <div class="info-card">${ready ? "All players are ready." : "Configuration changes require everyone to ready up again."}</div>
         <div class="info-card">Use Randomize Hazards to keep the selected map and reshuffle special spaces.</div>
       `;
       return;
@@ -1082,9 +1242,35 @@
     `;
   }
 
+  function renderLobby() {
+    els.lobbyCode.textContent = state.lobby.code || "No Race";
+    const readyCount = state.lobby.players.filter((player) => player.readyVersion === state.lobby.configVersion).length;
+    els.lobbyStatus.textContent = state.lobby.active
+      ? `${readyCount}/${state.lobby.players.length} ready`
+      : "Create or join a race lobby.";
+    els.readyRaceBtn.disabled = !state.lobby.active;
+    els.readyRaceBtn.textContent = state.lobby.players.some((player) => player.id === LOCAL_PLAYER_ID && player.readyVersion === state.lobby.configVersion)
+      ? "Ready ✓"
+      : "Ready";
+    els.startRaceBtn.disabled = state.lobby.active && !lobbyIsReady();
+
+    els.lobbyPlayers.innerHTML = state.lobby.players.length
+      ? state.lobby.players.map((player) => {
+        const ready = player.readyVersion === state.lobby.configVersion;
+        return `
+          <div class="lobby-player${ready ? " ready" : ""}">
+            <strong>${escapeHtml(player.name)}</strong>
+            <span>${player.host ? "Host" : "Player"} | ${ready ? "Ready" : "Not Ready"}</span>
+          </div>
+        `;
+      }).join("")
+      : `<div class="info-card muted">No players in lobby.</div>`;
+  }
+
   function render() {
     applyTheme();
-    document.body.dataset.phase = state.phase === "setup" ? "setup" : "race";
+    document.body.dataset.phase = state.phase === "lobby" ? "lobby" : state.phase === "setup" ? "setup" : "race";
+    renderLobby();
     renderBoard();
     renderStatus();
     renderRoster();

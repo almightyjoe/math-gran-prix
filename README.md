@@ -15,6 +15,8 @@ Standalone static website version of Math Gran Prix.
 
 - Local browser gameplay for two to four drivers
 - Human and AI drivers
+- Browser-side lobby flow with race codes, player roster, and ready checks
+- Configuration changes reset player readiness before the race can start
 - Addition, subtraction, multiplication, division, and mixed modes
 - Eight selectable SVG race maps with distinct scenery
 - Randomized hazard placement on the selected map
@@ -30,3 +32,7 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 This project can be published directly from the repository root on the `main` branch. It does not need server storage unless shared all-time high scores, online multiplayer, or account features are added later.
 
 The included GitHub Actions workflow deploys the static site to GitHub Pages after pushes to `main`.
+
+## Remote Multiplayer
+
+The lobby UI is ready for remote synchronization, but GitHub Pages cannot host the realtime service itself. True multi-location play needs a small backend or realtime data service to sync lobby membership, configuration, readiness, turns, and answers.

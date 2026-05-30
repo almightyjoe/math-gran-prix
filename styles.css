@@ -128,6 +128,7 @@ button {
 }
 
 .setup-panel,
+.lobby-panel,
 .board-panel,
 .status-panel,
 .roster-panel,
@@ -137,6 +138,8 @@ button {
 }
 
 .setup-grid,
+.lobby-grid,
+.lobby-summary,
 .driver-config,
 .status-summary,
 .driver-roster,
@@ -149,6 +152,42 @@ button {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.lobby-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lobby-summary {
+  display: grid;
+  gap: 10px;
+}
+
+.lobby-players {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(69, 80, 74, 0.14);
+}
+
+.lobby-player.ready {
+  border-color: rgba(52, 117, 71, 0.42);
+  background: rgba(225, 242, 224, 0.78);
+}
+
+.lobby-player span {
+  color: var(--muted);
 }
 
 label {
@@ -333,6 +372,30 @@ body[data-phase="race"] .layout {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
 }
 
+body[data-phase="lobby"] .layout {
+  grid-template-columns: minmax(320px, 680px);
+  justify-content: center;
+}
+
+body[data-phase="lobby"] .setup-panel,
+body[data-phase="lobby"] .board-panel,
+body[data-phase="lobby"] .sidebar {
+  display: none;
+}
+
+body[data-phase="setup"] .layout {
+  grid-template-columns: minmax(300px, 360px) minmax(360px, 420px) minmax(560px, 1fr);
+}
+
+body[data-phase="setup"] .sidebar {
+  display: none;
+}
+
+body[data-phase="setup"] .board-stage {
+  aspect-ratio: 16 / 10;
+}
+
+body[data-phase="race"] .lobby-panel,
 body[data-phase="race"] .setup-panel {
   display: none;
 }
@@ -380,6 +443,10 @@ body[data-phase="race"] .prompt-body {
     grid-template-columns: 1fr;
   }
 
+  body[data-phase="setup"] .layout {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -409,6 +476,7 @@ body[data-phase="race"] .prompt-body {
   }
 
   .setup-grid,
+  .lobby-grid,
   .driver-card,
   .sidebar,
   body[data-phase="race"] .sidebar {

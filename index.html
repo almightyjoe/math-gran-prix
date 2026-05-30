@@ -19,6 +19,38 @@
     </header>
 
     <main class="layout">
+      <section class="panel lobby-panel">
+        <div class="panel-header">
+          <h2>Race Lobby</h2>
+          <p>Create a race, invite players, and start when everyone is ready.</p>
+        </div>
+
+        <div class="lobby-grid">
+          <label>
+            <span>Player Name</span>
+            <input id="player-name" maxlength="18" spellcheck="false" value="Player 1">
+          </label>
+          <label>
+            <span>Race Code</span>
+            <input id="join-code" maxlength="8" spellcheck="false" placeholder="ABC123">
+          </label>
+        </div>
+
+        <div class="setup-actions">
+          <button id="create-race-btn" class="primary-btn">Create Race</button>
+          <button id="join-race-btn" class="ghost-btn">Join Race</button>
+          <button id="ready-race-btn" class="ghost-btn">Ready</button>
+        </div>
+
+        <div class="lobby-summary">
+          <div class="info-card">
+            <strong id="lobby-code">No Race</strong>
+            <div class="muted" id="lobby-status">Create or join a race lobby.</div>
+          </div>
+          <div id="lobby-players" class="lobby-players"></div>
+        </div>
+      </section>
+
       <section class="panel setup-panel">
         <div class="panel-header">
           <h2>Race Setup</h2>
