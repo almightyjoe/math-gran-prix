@@ -9,6 +9,36 @@
   const PLACEMENT_BONUS = [15, 8, 4, 0];
   const HAZARD_KEYS = ["spinner", "skipper", "sinker", "steps"];
   const LOCAL_PLAYER_ID = "local-player";
+  const HAZARD_INFO = {
+    spinner: {
+      label: "Spinner",
+      short: "S",
+      color: "#ffd96b",
+      effect: "Jump 1-4 extra spaces.",
+      icon: "star",
+    },
+    skipper: {
+      label: "Skipper",
+      short: "K",
+      color: "#7fd3ff",
+      effect: "Take another turn.",
+      icon: "flag",
+    },
+    sinker: {
+      label: "Sinker",
+      short: "N",
+      color: "#bb9ae6",
+      effect: "Gain one bump shield.",
+      icon: "shield",
+    },
+    steps: {
+      label: "Steps",
+      short: "T",
+      color: "#ffb057",
+      effect: "Only 3-space moves until the finish.",
+      icon: "stairs",
+    },
+  };
 
   const PLAYER_STYLES = [
     { name: "Red Car", color: "#cd4f49" },
@@ -274,6 +304,7 @@
     promptBody: document.querySelector("#prompt-body"),
     moveControls: document.querySelector("#move-controls"),
     answerControls: document.querySelector("#answer-controls"),
+    hazardLegend: document.querySelector("#hazard-legend"),
     resultsBody: document.querySelector("#results-body"),
     driverTemplate: document.querySelector("#driver-config-template"),
   };
@@ -1048,24 +1079,21 @@
   }
 
   function hazardSvg(point, key) {
-    const spec = {
-      spinner: { label: "Spinner", color: "#ffd96b", icon: "star" },
-      skipper: { label: "Skipper", color: "#7fd3ff", icon: "flag" },
-      sinker: { label: "Sinker", color: "#bb9ae6", icon: "shield" },
-      steps: { label: "Steps", color: "#ffb057", icon: "stairs" },
-    }[key];
+    const spec = HAZARD_INFO[key];
 
     const iconMarkup = spec.icon === "star"
-      ? `<path d="M0,-13 L4,-4 L14,-4 L6,2 L9,12 L0,6 L-9,12 L-6,2 L-14,-4 L-4,-4 Z" fill="${spec.color}" stroke="#6b685d" stroke-width="1.5"></path>`
+      ? `<path d="M0,-16 L5,-5 L17,-5 L7,2 L10,15 L0,8 L-10,15 L-7,2 L-17,-5 L-5,-5 Z" fill="${spec.color}" stroke="#3a3a33" stroke-width="2"></path>`
       : spec.icon === "flag"
-        ? `<path d="M-2,-14 L-2,12 M-2,-12 L14,-8 L-2,-2" fill="none" stroke="${spec.color}" stroke-width="4" stroke-linecap="round"></path>`
+        ? `<path d="M-3,-18 L-3,16 M-3,-16 L17,-11 L-3,-3" fill="none" stroke="${spec.color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>`
         : spec.icon === "shield"
-          ? `<path d="M0,-13 L12,-8 L10,6 L0,14 L-10,6 L-12,-8 Z" fill="${spec.color}" stroke="#6b685d" stroke-width="1.5"></path>`
-          : `<path d="M-10,10 L-10,2 L-3,2 L-3,-6 L4,-6 L4,-14 L12,-14" fill="none" stroke="${spec.color}" stroke-width="4" stroke-linecap="round"></path>`;
+          ? `<path d="M0,-17 L15,-11 L12,8 L0,18 L-12,8 L-15,-11 Z" fill="${spec.color}" stroke="#3a3a33" stroke-width="2"></path>`
+          : `<path d="M-14,14 L-14,5 L-6,5 L-6,-4 L3,-4 L3,-13 L14,-13" fill="none" stroke="${spec.color}" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"></path>`;
     return `
       <g transform="translate(${point[0]} ${point[1] - 42})">
+        <rect x="-44" y="-46" width="88" height="22" rx="7" fill="rgba(255,255,255,0.92)" stroke="${spec.color}" stroke-width="2"></rect>
+        <text x="-33" y="-30" fill="#263139" font-size="13" font-weight="900">${spec.short}</text>
+        <text x="-16" y="-30" fill="#263139" font-size="12" font-weight="800">${spec.label.toUpperCase()}</text>
         ${iconMarkup}
-        <text x="0" y="-20" text-anchor="middle" fill="${spec.color}" font-size="12" font-weight="700">${spec.label.toUpperCase()}</text>
       </g>
     `;
   }
@@ -1176,7 +1204,8 @@
           const button = document.createElement("button");
           button.className = "primary-btn move-btn";
           button.textContent = `${move}`;
-          button.disabled = state.forceThree && move !== 3;
+          const reachesFinish = currentPlayer().position + move >= FINISH_INDEX;
+          button.disabled = state.forceThree && move !== 3 && !reachesFinish;
           button.addEventListener("click", () => askQuestion(move));
           els.moveControls.append(button);
         });
@@ -1267,6 +1296,22 @@
       : `<div class="info-card muted">No players in lobby.</div>`;
   }
 
+  function renderHazardLegend() {
+    els.hazardLegend.innerHTML = HAZARD_KEYS.map((key) => {
+      const hazard = HAZARD_INFO[key];
+      const space = state.track.hazards[key];
+      return `
+        <div class="hazard-row">
+          <span class="hazard-token" style="background:${hazard.color}">${hazard.short}</span>
+          <div>
+            <strong>${hazard.label}${Number.isInteger(space) ? ` ${space}` : ""}</strong>
+            <div class="muted">${hazard.effect}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
   function render() {
     applyTheme();
     document.body.dataset.phase = state.phase === "lobby" ? "lobby" : state.phase === "setup" ? "setup" : "race";
@@ -1275,6 +1320,7 @@
     renderStatus();
     renderRoster();
     renderPrompt();
+    renderHazardLegend();
     renderResults();
   }
 

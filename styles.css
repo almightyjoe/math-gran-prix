@@ -133,6 +133,7 @@ button {
 .status-panel,
 .roster-panel,
 .prompt-panel,
+.hazard-panel,
 .results-panel {
   padding-bottom: 18px;
 }
@@ -143,6 +144,7 @@ button {
 .driver-config,
 .status-summary,
 .driver-roster,
+.hazard-legend,
 .prompt-body,
 .results-body {
   padding: 12px 20px 0;
@@ -259,6 +261,7 @@ input:not([type]) {
 
 .status-summary,
 .driver-roster,
+.hazard-legend,
 .prompt-body,
 .results-body {
   display: grid;
@@ -368,8 +371,31 @@ input:not([type]) {
   justify-content: center;
 }
 
+.hazard-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.62);
+  border: 1px solid rgba(69, 80, 74, 0.14);
+}
+
+.hazard-token {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  color: #263139;
+  font-weight: 900;
+  border: 2px solid rgba(0,0,0,0.22);
+}
+
 body[data-phase="race"] .layout {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 390px);
+  align-items: start;
 }
 
 body[data-phase="lobby"] .layout {
@@ -414,8 +440,9 @@ body[data-phase="race"] .board-panel .panel-header {
 
 body[data-phase="race"] .board-stage {
   margin: 12px;
-  aspect-ratio: 16 / 9;
-  min-height: min(74vh, 760px);
+  aspect-ratio: 1040 / 560;
+  min-height: 0;
+  max-height: calc(100vh - 138px);
 }
 
 body[data-phase="race"] .prompt-panel {
