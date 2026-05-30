@@ -16,8 +16,9 @@ Standalone static website version of Math Gran Prix.
 - Local browser gameplay for two to four drivers
 - Human and AI drivers
 - Addition, subtraction, multiplication, division, and mixed modes
-- Authored SVG race maps with distinct scenery
-- Randomized hazard placement per race
+- Eight selectable SVG race maps with distinct scenery
+- Randomized hazard placement on the selected map
+- Race view that prioritizes the map, move buttons, and active challenge
 - Session-only final standings
 
 ## Run Locally

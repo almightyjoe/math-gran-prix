@@ -32,7 +32,11 @@
     classic: { name: "Harbor Dash", family: "classic", world: "harbor" },
     overpass: { name: "Skyline Overpass", family: "overpass", world: "city" },
     switchback: { name: "Pine Switchback", family: "switchback", world: "forest" },
-    random: { name: "Random Map", family: "random", world: "mixed" },
+    lagoon: { name: "Lagoon Loop", family: "lagoon", world: "harbor" },
+    canyon: { name: "Canyon Spiral", family: "canyon", world: "canyon" },
+    speedway: { name: "Speedway Oval", family: "speedway", world: "city" },
+    summit: { name: "Summit Climb", family: "summit", world: "forest" },
+    nebula: { name: "Nebula Eight", family: "nebula", world: "space" },
   };
 
   const TRACK_LIBRARY = {
@@ -148,6 +152,75 @@
         [7, 10, 11, 13, 15, 18, 20, 22, 26, 27]
       ),
     ],
+    lagoon: [
+      createGeneratedTemplate("lagoon-loop-a", "lagoon", [
+        [106, 408], [150, 330], [244, 282], [354, 288], [452, 344], [534, 424],
+        [636, 468], [768, 444], [894, 374], [960, 276], [914, 176], [792, 118],
+        [650, 130], [548, 196], [468, 254], [356, 230], [244, 158], [132, 176],
+        [82, 264], [106, 408],
+      ]),
+      createGeneratedTemplate("lagoon-loop-b", "lagoon", [
+        [96, 438], [132, 340], [228, 286], [344, 306], [448, 382], [560, 450],
+        [704, 462], [842, 406], [948, 300], [966, 194], [884, 118], [752, 110],
+        [614, 156], [514, 226], [402, 204], [284, 132], [164, 150], [90, 238],
+        [72, 344], [96, 438],
+      ]),
+    ],
+    canyon: [
+      createGeneratedTemplate("canyon-spiral-a", "canyon", [
+        [96, 466], [198, 456], [308, 438], [416, 406], [514, 350], [592, 284],
+        [646, 218], [650, 162], [594, 126], [500, 130], [402, 174], [330, 238],
+        [310, 310], [366, 366], [468, 382], [594, 350], [720, 300], [846, 242],
+        [960, 214], [990, 286], [924, 374], [812, 430], [676, 466], [532, 486],
+        [392, 488], [252, 482], [148, 474], [96, 466],
+      ]),
+      createGeneratedTemplate("canyon-spiral-b", "canyon", [
+        [92, 454], [190, 424], [286, 380], [374, 320], [456, 252], [544, 196],
+        [638, 168], [714, 178], [746, 226], [712, 282], [626, 324], [514, 348],
+        [404, 374], [346, 430], [404, 486], [548, 494], [704, 462], [848, 400],
+        [962, 318], [980, 222], [902, 146], [754, 106], [588, 112], [424, 148],
+        [280, 210], [168, 302], [104, 390], [92, 454],
+      ]),
+    ],
+    speedway: [
+      createGeneratedTemplate("speedway-oval-a", "speedway", [
+        [116, 420], [184, 484], [320, 504], [500, 506], [680, 504], [842, 482],
+        [944, 420], [982, 318], [954, 214], [850, 144], [680, 116], [500, 112],
+        [320, 116], [180, 146], [98, 218], [74, 316], [116, 420],
+      ]),
+      createGeneratedTemplate("speedway-oval-b", "speedway", [
+        [128, 438], [238, 498], [404, 514], [604, 510], [784, 486], [924, 416],
+        [980, 304], [940, 188], [806, 126], [612, 106], [416, 110], [242, 136],
+        [116, 204], [66, 310], [88, 386], [128, 438],
+      ]),
+    ],
+    summit: [
+      createGeneratedTemplate("summit-climb-a", "summit", [
+        [88, 488], [148, 438], [226, 456], [294, 396], [226, 340], [156, 292],
+        [220, 234], [338, 246], [434, 212], [378, 152], [486, 96], [618, 116],
+        [712, 170], [810, 144], [934, 198], [968, 292], [904, 372], [790, 404],
+        [670, 386], [560, 430], [430, 480], [278, 498], [150, 496], [88, 488],
+      ]),
+      createGeneratedTemplate("summit-climb-b", "summit", [
+        [92, 472], [158, 404], [252, 424], [338, 354], [272, 286], [164, 246],
+        [236, 176], [368, 188], [478, 136], [590, 82], [710, 112], [766, 184],
+        [880, 168], [970, 246], [950, 340], [846, 404], [712, 432], [570, 408],
+        [444, 462], [302, 500], [164, 502], [92, 472],
+      ]),
+    ],
+    nebula: [
+      createGeneratedTemplate("nebula-eight-a", "nebula", [
+        [98, 288], [160, 204], [268, 162], [388, 186], [488, 260], [552, 330],
+        [636, 394], [760, 424], [884, 386], [954, 300], [926, 210], [816, 158],
+        [688, 178], [584, 254], [494, 330], [390, 396], [264, 418], [154, 374],
+        [98, 288],
+      ]),
+      createGeneratedTemplate("nebula-eight-b", "nebula", [
+        [88, 306], [142, 220], [256, 174], [390, 192], [508, 284], [604, 370],
+        [730, 420], [858, 396], [956, 320], [966, 222], [874, 150], [736, 138],
+        [608, 192], [500, 286], [396, 378], [270, 426], [144, 394], [88, 306],
+      ]),
+    ],
   };
 
   const state = {
@@ -178,6 +251,7 @@
     driverConfig: document.querySelector("#driver-config"),
     startRaceBtn: document.querySelector("#start-race-btn"),
     newRaceBtn: document.querySelector("#new-race-btn"),
+    randomizeTrackBtn: document.querySelector("#randomize-track-btn"),
     boardStage: document.querySelector("#board-stage"),
     statusSummary: document.querySelector("#status-summary"),
     driverRoster: document.querySelector("#driver-roster"),
@@ -199,23 +273,87 @@
     };
   }
 
+  function createGeneratedTemplate(key, family, controlPoints) {
+    const points = resamplePath(controlPoints, TRACK_LENGTH);
+    return createTemplate(
+      key,
+      points,
+      [6, 12, 18, 24],
+      laneSegmentsForFamily(family),
+      [5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25, 27]
+    );
+  }
+
+  function laneSegmentsForFamily(family) {
+    if (family === "speedway") {
+      return [
+        { from: 0, to: 29, lanes: 2 },
+      ];
+    }
+    if (family === "canyon" || family === "summit") {
+      return [
+        { from: 0, to: 8, lanes: 1 },
+        { from: 8, to: 18, lanes: 2 },
+        { from: 18, to: 29, lanes: 1 },
+      ];
+    }
+    return [
+      { from: 0, to: 7, lanes: 1 },
+      { from: 7, to: 20, lanes: 2 },
+      { from: 20, to: 29, lanes: 1 },
+    ];
+  }
+
+  function resamplePath(controlPoints, targetCount) {
+    const lengths = [0];
+    let total = 0;
+    for (let index = 1; index < controlPoints.length; index += 1) {
+      total += distance(controlPoints[index - 1], controlPoints[index]);
+      lengths.push(total);
+    }
+
+    return Array.from({ length: targetCount }, (_, pointIndex) => {
+      const target = (total * pointIndex) / (targetCount - 1);
+      let segment = 1;
+      while (segment < lengths.length - 1 && lengths[segment] < target) {
+        segment += 1;
+      }
+      const start = controlPoints[segment - 1];
+      const end = controlPoints[segment];
+      const segmentLength = lengths[segment] - lengths[segment - 1] || 1;
+      const ratio = (target - lengths[segment - 1]) / segmentLength;
+      return [
+        Math.round(start[0] + (end[0] - start[0]) * ratio),
+        Math.round(start[1] + (end[1] - start[1]) * ratio),
+      ];
+    });
+  }
+
+  function distance(a, b) {
+    return Math.hypot(b[0] - a[0], b[1] - a[1]);
+  }
+
   function buildTrackInstance(layoutKey) {
     const family = TRACK_LAYOUTS[layoutKey].family;
-    const templates = family === "random"
-      ? [...TRACK_LIBRARY.classic, ...TRACK_LIBRARY.overpass, ...TRACK_LIBRARY.switchback]
-      : TRACK_LIBRARY[family];
+    const templates = TRACK_LIBRARY[family];
     const template = templates[randInt(0, templates.length - 1)];
     const hazards = randomizeHazards(template.hazardCandidates);
-    const world = layoutKey === "random" ? worldForTemplate(template.key) : TRACK_LAYOUTS[layoutKey].world;
     return {
       layoutKey,
       templateKey: template.key,
-      world,
+      world: TRACK_LAYOUTS[layoutKey].world,
       points: template.points.map((point) => [...point]),
       safeSpots: new Set(template.safeSpots),
       laneSegments: template.laneSegments.map((segment) => ({ ...segment })),
+      hazardCandidates: [...template.hazardCandidates],
       hazards,
     };
+  }
+
+  function randomizeCurrentTrack() {
+    state.track.hazards = randomizeHazards([...state.track.hazardCandidates]);
+    state.feedback = `Hazards randomized on ${TRACK_LAYOUTS[state.config.track].name}.`;
+    render();
   }
 
   function randomizeHazards(candidates) {
@@ -227,12 +365,6 @@
       sinker: picks[2],
       steps: picks[3],
     };
-  }
-
-  function worldForTemplate(templateKey) {
-    if (templateKey.startsWith("overpass")) return "city";
-    if (templateKey.startsWith("switchback")) return "forest";
-    return "harbor";
   }
 
   function shuffle(items) {
@@ -308,6 +440,7 @@
 
     els.startRaceBtn.addEventListener("click", startRace);
     els.newRaceBtn.addEventListener("click", resetToSetup);
+    els.randomizeTrackBtn.addEventListener("click", randomizeCurrentTrack);
   }
 
   function applyTheme() {
@@ -404,6 +537,7 @@
     state.placements = [];
     state.track = buildTrackInstance(state.config.track);
     render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (currentPlayer().isAi) {
       queueAiTurn();
@@ -418,6 +552,7 @@
     state.placements = [];
     state.track = buildTrackInstance(state.config.track);
     render();
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function difficultyForMove(player, spaces, repair) {
@@ -679,6 +814,23 @@
   }
 
   function scenerySvg(world) {
+    if (world === "space") {
+      return `
+        <rect x="0" y="0" width="1040" height="560" fill="#171c32"></rect>
+        ${[[96, 84, 2], [184, 134, 3], [294, 72, 2], [436, 120, 2], [742, 86, 3], [918, 142, 2], [836, 430, 2], [168, 448, 2], [518, 472, 3]].map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="#f7f0c8"></circle>`).join("")}
+        <circle cx="846" cy="106" r="42" fill="#7158a8" opacity="0.82"></circle>
+        <circle cx="872" cy="92" r="14" fill="#9f82d4" opacity="0.85"></circle>
+        <path d="M0,496 C168,458 316,504 470,470 C646,430 800,492 1040,440 L1040,560 L0,560 Z" fill="rgba(91,122,156,0.22)"></path>
+      `;
+    }
+    if (world === "canyon") {
+      return `
+        <rect x="0" y="0" width="1040" height="560" fill="#d7bd8e"></rect>
+        <path d="M0,154 L112,80 L214,132 L324,64 L442,150 L552,78 L668,126 L778,68 L900,136 L1040,92 L1040,0 L0,0 Z" fill="rgba(138,78,58,0.42)"></path>
+        <path d="M0,506 C150,470 300,520 464,474 C650,420 824,494 1040,438 L1040,560 L0,560 Z" fill="rgba(145,84,62,0.24)"></path>
+        ${[[96, 406], [196, 98], [884, 388], [944, 326]].map(([x, y]) => `<g transform="translate(${x} ${y})"><rect x="-6" y="-36" width="12" height="62" rx="5" fill="#5f7141"></rect><path d="M0,-10 h28 M0,4 h-24" stroke="#5f7141" stroke-width="8" stroke-linecap="round"></path></g>`).join("")}
+      `;
+    }
     if (world === "city") {
       return `
         <rect x="0" y="0" width="1040" height="560" fill="#c9d8df"></rect>
@@ -813,9 +965,18 @@
       state.feedback,
     ];
 
+    const newRaceAction = state.phase === "setup"
+      ? ""
+      : `<button class="ghost-btn status-new-race" type="button">New Race</button>`;
+
     els.statusSummary.innerHTML = rows.map((line, index) => `
       <div class="info-card">${index === 0 ? `<strong>${escapeHtml(line)}</strong>` : escapeHtml(line)}</div>
-    `).join("");
+    `).join("") + newRaceAction;
+
+    const statusNewRace = els.statusSummary.querySelector(".status-new-race");
+    if (statusNewRace) {
+      statusNewRace.addEventListener("click", resetToSetup);
+    }
   }
 
   function renderRoster() {
@@ -840,7 +1001,7 @@
       els.promptTitle.textContent = "Ready";
       els.promptBody.innerHTML = `
         <div class="info-card">Configure the race, then start.</div>
-        <div class="info-card">Random Map chooses among the authored tracks and re-randomizes hazard markers each race.</div>
+        <div class="info-card">Use Randomize Hazards to keep the selected map and reshuffle special spaces.</div>
       `;
       return;
     }
@@ -848,13 +1009,13 @@
     if (state.phase === "chooseMove") {
       els.promptTitle.textContent = "Choose Distance";
       els.promptBody.innerHTML = `
-        <div class="info-card">Smaller moves mean easier questions and lower scoring. Larger moves mean tougher questions and higher scoring.</div>
+        <div class="info-card"><strong>${escapeHtml(currentPlayer().name)}</strong>: choose how far to move.</div>
       `;
       if (!currentPlayer().isAi) {
         MOVE_OPTIONS.forEach((move) => {
           const button = document.createElement("button");
           button.className = "primary-btn move-btn";
-          button.textContent = `${move} Space${move === 1 ? "" : "s"}`;
+          button.textContent = `${move}`;
           button.disabled = state.forceThree && move !== 3;
           button.addEventListener("click", () => askQuestion(move));
           els.moveControls.append(button);
@@ -868,7 +1029,7 @@
     if (state.phase === "answering") {
       els.promptTitle.textContent = "Solve";
       els.promptBody.innerHTML = `
-        <div class="info-card">
+        <div class="question-card">
           <strong>${escapeHtml(state.currentQuestion.prompt)}</strong>
           <div class="muted">Difficulty ${state.currentQuestion.difficulty + 1} | Move ${state.currentQuestion.move}</div>
         </div>
@@ -923,6 +1084,7 @@
 
   function render() {
     applyTheme();
+    document.body.dataset.phase = state.phase === "setup" ? "setup" : "race";
     renderBoard();
     renderStatus();
     renderRoster();

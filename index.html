@@ -56,6 +56,7 @@
 
         <div class="setup-actions">
           <button id="start-race-btn" class="primary-btn">Start Race</button>
+          <button id="randomize-track-btn" class="ghost-btn">Randomize Hazards</button>
         </div>
       </section>
 
@@ -68,6 +69,15 @@
       </section>
 
       <aside class="sidebar">
+        <section class="panel prompt-panel">
+          <div class="panel-header compact">
+            <h2 id="prompt-title">Ready</h2>
+          </div>
+          <div id="prompt-body" class="prompt-body"></div>
+          <div id="move-controls" class="move-controls"></div>
+          <div id="answer-controls" class="answer-controls"></div>
+        </section>
+
         <section class="panel status-panel">
           <div class="panel-header compact">
             <h2>Race Control</h2>
@@ -80,15 +90,6 @@
             <h2>Drivers</h2>
           </div>
           <div id="driver-roster" class="driver-roster"></div>
-        </section>
-
-        <section class="panel prompt-panel">
-          <div class="panel-header compact">
-            <h2 id="prompt-title">Ready</h2>
-          </div>
-          <div id="prompt-body" class="prompt-body"></div>
-          <div id="move-controls" class="move-controls"></div>
-          <div id="answer-controls" class="answer-controls"></div>
         </section>
 
         <section class="panel results-panel">

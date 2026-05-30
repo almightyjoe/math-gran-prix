@@ -53,13 +53,16 @@ h1 {
   font-size: clamp(2rem, 3vw, 3.2rem);
 }
 
-.topbar-actions,
 .setup-actions,
 .move-controls,
 .answer-controls {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.topbar-actions {
+  display: none;
 }
 
 button,
@@ -268,7 +271,11 @@ input:not([type]) {
 }
 
 .move-btn {
-  min-width: 72px;
+  flex: 1 1 88px;
+  min-width: 88px;
+  min-height: 72px;
+  font-size: 2rem;
+  font-weight: 800;
 }
 
 .answer-controls input {
@@ -304,6 +311,58 @@ input:not([type]) {
   font-size: 0.82rem;
 }
 
+.question-card {
+  padding: 18px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(69, 80, 74, 0.14);
+}
+
+.question-card strong {
+  display: block;
+  font-size: clamp(2rem, 5vw, 3.6rem);
+  line-height: 1;
+  margin-bottom: 10px;
+}
+
+.status-new-race {
+  justify-content: center;
+}
+
+body[data-phase="race"] .layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 390px);
+}
+
+body[data-phase="race"] .setup-panel {
+  display: none;
+}
+
+body[data-phase="race"] .board-panel {
+  grid-column: 1;
+}
+
+body[data-phase="race"] .sidebar {
+  grid-column: 2;
+}
+
+body[data-phase="race"] .board-panel .panel-header {
+  display: none;
+}
+
+body[data-phase="race"] .board-stage {
+  margin: 12px;
+  aspect-ratio: 16 / 9;
+  min-height: min(74vh, 760px);
+}
+
+body[data-phase="race"] .prompt-panel {
+  border-color: var(--highlight);
+}
+
+body[data-phase="race"] .prompt-body {
+  min-height: 72px;
+}
+
 .error-banner {
   padding: 12px 14px;
   border-radius: 8px;
@@ -317,8 +376,21 @@ input:not([type]) {
     grid-template-columns: 1fr;
   }
 
+  body[data-phase="race"] .layout {
+    grid-template-columns: 1fr;
+  }
+
   .sidebar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-phase="race"] .sidebar {
+    grid-column: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body[data-phase="race"] .prompt-panel {
+    grid-column: 1 / -1;
   }
 
   .results-panel {
@@ -338,7 +410,12 @@ input:not([type]) {
 
   .setup-grid,
   .driver-card,
-  .sidebar {
+  .sidebar,
+  body[data-phase="race"] .sidebar {
     grid-template-columns: 1fr;
+  }
+
+  body[data-phase="race"] .board-stage {
+    min-height: auto;
   }
 }
