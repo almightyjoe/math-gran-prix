@@ -8,7 +8,7 @@
   const DIFFICULTY_POINTS = [1, 2, 3, 4, 5];
   const PLACEMENT_BONUS = [15, 8, 4, 0];
   const HAZARD_KEYS = ["spinner", "skipper", "sinker", "steps"];
-  const LOCAL_PLAYER_ID = "local-player";
+  const LOBBY_STORAGE_KEY = "math-gran-prix-lobbies-v1";
   const HAZARD_INFO = {
     spinner: {
       label: "Spinner",
@@ -262,6 +262,7 @@
       theme: "sand",
       track: "classic",
     },
+    clientId: getClientId(),
     lobby: {
       active: false,
       code: "",
@@ -288,6 +289,7 @@
     lobbyCode: document.querySelector("#lobby-code"),
     lobbyStatus: document.querySelector("#lobby-status"),
     lobbyPlayers: document.querySelector("#lobby-players"),
+    availableLobbies: document.querySelector("#available-lobbies"),
     playerCount: document.querySelector("#player-count"),
     humanCount: document.querySelector("#human-count"),
     modeSelect: document.querySelector("#mode-select"),
@@ -434,7 +436,12 @@
     return Object.entries(state.track.hazards).find(([, value]) => value === index)?.[0] || null;
   }
 
+  function getClientId() {
+    return `player-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
   function initControls() {
+    initLobbyFieldsFromUrl();
     for (let value = 2; value <= 4; value += 1) {
       els.playerCount.append(new Option(String(value), String(value)));
     }
@@ -496,17 +503,39 @@
     els.startRaceBtn.addEventListener("click", startRace);
     els.newRaceBtn.addEventListener("click", resetToSetup);
     els.randomizeTrackBtn.addEventListener("click", randomizeCurrentTrack);
+    window.addEventListener("storage", (event) => {
+      if (event.key !== LOBBY_STORAGE_KEY || !state.lobby.active) return;
+      const latest = readLobby(state.lobby.code);
+      if (latest) {
+        loadLobby(latest);
+        render();
+      }
+    });
+  }
+
+  function initLobbyFieldsFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const race = (params.get("race") || params.get("code") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+    const name = (params.get("name") || "").trim().slice(0, 18);
+    if (race) els.joinCode.value = race;
+    if (name) els.playerName.value = name;
   }
 
   function createLobby() {
     const name = normalizedPlayerName();
+    const code = normalizedLobbyCode() || randomLobbyCode();
+    if (readLobby(code)) {
+      state.feedback = `Race ${code} already exists. Join it or choose another code.`;
+      render();
+      return;
+    }
     state.lobby = {
       active: true,
-      code: randomLobbyCode(),
+      code,
       configVersion: 1,
       players: [
         {
-          id: LOCAL_PLAYER_ID,
+          id: state.clientId,
           name,
           readyVersion: 0,
           host: true,
@@ -515,29 +544,36 @@
     };
     state.phase = "setup";
     syncConfigToLobby();
+    saveCurrentLobby();
     state.feedback = `${name} created race ${state.lobby.code}.`;
     rebuildDriverConfig();
     render();
   }
 
   function joinLobby() {
-    const code = (els.joinCode.value || state.lobby.code || randomLobbyCode()).trim().toUpperCase();
+    const code = normalizedLobbyCode();
     const localName = normalizedPlayerName();
-    if (!state.lobby.active) {
-      state.lobby = {
-        active: true,
-        code,
-        configVersion: 1,
-        players: [],
-      };
+    if (!code) {
+      state.feedback = "Enter a race code or double-click an available race.";
+      render();
+      return;
     }
-    upsertLobbyPlayer(LOCAL_PLAYER_ID, localName, state.lobby.players.length === 0);
-    if (state.lobby.players.length < 4) {
-      upsertLobbyPlayer(`guest-${state.lobby.players.length + 1}`, `Player ${state.lobby.players.length + 1}`, false);
+    const lobby = readLobby(code);
+    if (!lobby) {
+      state.feedback = `Race ${code} was not found. Create it first or join an available race.`;
+      render();
+      return;
     }
-    state.lobby.code = code;
+    if (!lobby.players.some((player) => player.id === state.clientId) && lobby.players.length >= 4) {
+      state.feedback = `Race ${code} is full.`;
+      render();
+      return;
+    }
+    loadLobby(lobby);
+    upsertLobbyPlayer(state.clientId, localName, state.lobby.players.length === 0);
     state.phase = "setup";
     syncConfigToLobby();
+    saveCurrentLobby();
     state.feedback = `${localName} joined race ${state.lobby.code}.`;
     rebuildDriverConfig();
     render();
@@ -560,12 +596,25 @@
 
   function toggleReady() {
     if (!state.lobby.active) {
-      createLobby();
+      state.feedback = "Create or join a race before marking ready.";
+      render();
+      return;
     }
-    const localPlayer = state.lobby.players.find((player) => player.id === LOCAL_PLAYER_ID);
+    const localPlayer = localLobbyPlayer();
     if (!localPlayer) return;
     localPlayer.readyVersion = localPlayer.readyVersion === state.lobby.configVersion ? 0 : state.lobby.configVersion;
+    saveCurrentLobby();
     render();
+  }
+
+  function localLobbyPlayer() {
+    const name = normalizedPlayerName();
+    return state.lobby.players.find((player) => player.name === name)
+      || state.lobby.players.find((player) => player.id === state.clientId);
+  }
+
+  function normalizedLobbyCode() {
+    return (els.joinCode.value || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
   }
 
   function normalizedPlayerName() {
@@ -590,12 +639,72 @@
     state.lobby.players.forEach((player) => {
       player.readyVersion = 0;
     });
+    saveCurrentLobby();
   }
 
   function lobbyIsReady() {
     return state.lobby.active
       && state.lobby.players.length > 0
       && state.lobby.players.every((player) => player.readyVersion === state.lobby.configVersion);
+  }
+
+  function readLobbyRegistry() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(LOBBY_STORAGE_KEY) || "{}");
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function writeLobbyRegistry(registry) {
+    try {
+      localStorage.setItem(LOBBY_STORAGE_KEY, JSON.stringify(registry));
+    } catch {
+      // Static preview keeps working without persistence.
+    }
+  }
+
+  function readLobby(code) {
+    const lobby = readLobbyRegistry()[code];
+    return lobby && Array.isArray(lobby.players) ? lobby : null;
+  }
+
+  function saveCurrentLobby() {
+    if (!state.lobby.active || !state.lobby.code) return;
+    const registry = readLobbyRegistry();
+    registry[state.lobby.code] = {
+      ...state.lobby,
+      updatedAt: Date.now(),
+      config: { ...state.config },
+      trackKey: state.track.templateKey,
+      hazards: { ...state.track.hazards },
+    };
+    writeLobbyRegistry(registry);
+  }
+
+  function loadLobby(lobby) {
+    state.lobby = {
+      active: true,
+      code: lobby.code,
+      configVersion: lobby.configVersion || 1,
+      players: Array.isArray(lobby.players) ? lobby.players : [],
+    };
+    if (lobby.config) {
+      state.config = {
+        ...state.config,
+        ...lobby.config,
+      };
+      els.playerCount.value = String(state.config.players);
+      els.humanCount.value = String(state.config.humans);
+      els.modeSelect.value = String(state.config.mode);
+      els.trackSelect.value = state.config.track;
+      els.themeSelect.value = state.config.theme;
+      state.track = buildTrackInstance(state.config.track);
+      if (lobby.hazards) {
+        state.track.hazards = { ...state.track.hazards, ...lobby.hazards };
+      }
+    }
   }
 
   function applyTheme() {
@@ -1278,10 +1387,36 @@
       ? `${readyCount}/${state.lobby.players.length} ready`
       : "Create or join a race lobby.";
     els.readyRaceBtn.disabled = !state.lobby.active;
-    els.readyRaceBtn.textContent = state.lobby.players.some((player) => player.id === LOCAL_PLAYER_ID && player.readyVersion === state.lobby.configVersion)
+    const localPlayer = localLobbyPlayer();
+    els.readyRaceBtn.textContent = localPlayer && localPlayer.readyVersion === state.lobby.configVersion
       ? "Ready ✓"
       : "Ready";
     els.startRaceBtn.disabled = state.lobby.active && !lobbyIsReady();
+
+    const lobbies = Object.values(readLobbyRegistry())
+      .filter((lobby) => lobby && lobby.code)
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    els.availableLobbies.innerHTML = lobbies.length
+      ? lobbies.map((lobby) => {
+        const ready = lobby.players.filter((player) => player.readyVersion === lobby.configVersion).length;
+        return `
+          <button class="available-lobby${lobby.code === state.lobby.code ? " active" : ""}" type="button" data-code="${escapeHtml(lobby.code)}">
+            <strong>${escapeHtml(lobby.code)}</strong>
+            <span>${lobby.players.length}/4 players | ${ready}/${lobby.players.length} ready</span>
+          </button>
+        `;
+      }).join("")
+      : `<div class="info-card muted">No races are currently posted in this browser.</div>`;
+    els.availableLobbies.querySelectorAll(".available-lobby").forEach((button) => {
+      const join = () => {
+        els.joinCode.value = button.dataset.code;
+        joinLobby();
+      };
+      button.addEventListener("dblclick", join);
+      button.addEventListener("click", () => {
+        els.joinCode.value = button.dataset.code;
+      });
+    });
 
     els.lobbyPlayers.innerHTML = state.lobby.players.length
       ? state.lobby.players.map((player) => {

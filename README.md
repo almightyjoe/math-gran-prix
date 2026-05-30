@@ -36,3 +36,5 @@ The included GitHub Actions workflow deploys the static site to GitHub Pages aft
 ## Remote Multiplayer
 
 The lobby UI is ready for remote synchronization, but GitHub Pages cannot host the realtime service itself. True multi-location play needs a small backend or realtime data service to sync lobby membership, configuration, readiness, turns, and answers.
+
+The current browser build keeps a local lobby registry in browser storage so create, join, posted race list, and ready/reset behavior can be exercised consistently before the realtime service is added.
